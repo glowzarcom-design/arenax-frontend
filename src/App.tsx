@@ -33,6 +33,7 @@ const ContactPage = lazy(() => import("./pages/ContactPage"));
 const AboutUsPage = lazy(() => import("./pages/AboutUsPage"));
 
 // Admin pages
+const AdminMatchDetailPage = lazy(() => import("./pages/admin/AdminMatchDetailPage"));
 const AdminLoginPage = lazy(() => import("./pages/admin/AdminLoginPage"));
 const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"));
 const AdminMatchesPage = lazy(() => import("./pages/admin/AdminMatchesPage"));
