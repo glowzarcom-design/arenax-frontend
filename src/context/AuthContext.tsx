@@ -11,7 +11,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Function to get user profile from our 'profiles' table
   const getProfile = async (user: User): Promise<AuthUser | null> => {
     try {
       const { data, error } = await supabase
@@ -19,29 +18,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .select('username, ign, free_fire_id, role, referral_code')
         .eq('id', user.id)
         .single();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return null;
-      }
+      if (error) { throw error; }
       
       return {
-        id: user.id,
-        email: user.email || '',
-        username: data.username,
-        ign: data.ign,
-        freeFireId: data.free_fire_id,
-        role: data.role || 'user',
-        referralCode: data.referral_code || '',
-        createdAt: user.created_at,
+        id: user.id, email: user.email || '', username: data.username, ign: data.ign,
+        freeFireId: data.free_fire_id, role: data.role || 'user',
+        referralCode: data.referral_code || '', createdAt: user.created_at,
       };
-
     } catch (e) {
-      console.error('Error in getProfile:', e);
+      console.error('Error fetching profile:', e);
       return null;
     }
   };
-
 
   useEffect(() => {
     const checkUser = async () => {
@@ -53,7 +41,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
     };
     checkUser();
-
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         const profile = await getProfile(session.user);
@@ -63,10 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       setIsLoading(false);
     });
-
-    return () => {
-      authListener?.subscription.unsubscribe();
-    };
+    return () => { authListener?.subscription.unsubscribe(); };
   }, []);
 
   const login = async (credentials: LoginCredentials) => {
@@ -78,7 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const ADMIN_EMAIL = 'ashadislam333@gmail.com';
     const ADMIN_PASS = 'mohammadashad00';
     if (credentials.email === ADMIN_EMAIL && credentials.password === ADMIN_PASS) {
-       const mockAdminUser: AuthUser = {
+      const mockAdminUser: AuthUser = {
         id: 'admin-001', username: 'Ashad Islam', email: 'ashadislam333@gmail.com',
         ign: 'AdminIGN', freeFireId: 'ADMIN123', role: 'admin',
         referralCode: 'ADMINREF', createdAt: new Date().toISOString(),
@@ -89,25 +73,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // ----- YEH HAI FINAL CORRECT SIGNUP FUNCTION -----
+  // ----- YEH HAI FINAL SIGNUP FUNCTION -----
   const signup = async (data: SignupData) => {
     const { email, password, username, ign, freeFireId } = data;
 
-    // Sign up the user with metadata, which our trigger will use.
-    const { error } = await supabase.auth.signUp({
+    // Step 1: Create the user in Supabase Auth.
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: {
-          username: username,
-          ign: ign,
-          free_fire_id: freeFireId
-        }
-      }
     });
 
-    if (error) {
-      throw error;
+    if (authError) {
+      throw authError;
+    }
+    if (!authData.user) {
+      throw new Error("Signup successful, but no user data returned.");
+    }
+
+    // Step 2: Update the newly created profile with the rest of the details.
+    // This works because the trigger has already created a basic row for this user.
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        username: username,
+        ign: ign,
+        free_fire_id: freeFireId,
+      })
+      .eq('id', authData.user.id);
+
+    if (updateError) {
+      // This is a critical error, log it.
+      console.error("Critical Error: Failed to update profile after signup.", updateError);
+      throw new Error("Account created, but failed to save profile details. Please contact support.");
     }
   };
 
