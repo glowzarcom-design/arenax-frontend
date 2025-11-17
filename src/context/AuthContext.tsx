@@ -89,15 +89,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // ----- YEH HAI NAYA AUR SAHI SIGNUP FUNCTION -----
+  // ----- YEH HAI FINAL CORRECT SIGNUP FUNCTION -----
   const signup = async (data: SignupData) => {
     const { email, password, username, ign, freeFireId } = data;
 
-    // Sirf Supabase Auth mein user create karo, aur baaki details metadata mein bhej do
+    // Sign up the user with metadata, which our trigger will use.
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      // Yeh 'options.data' trigger ke paas jaayega
       options: {
         data: {
           username: username,
@@ -108,13 +107,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     if (error) {
-        // Agar trigger se profile update nahi hui hai to auth user ko delete karo
-        const { data: { user } } = await supabase.auth.getUser();
-        if(user) {
-            await supabase.auth.admin.deleteUser(user.id);
-        }
-        throw error;
-    };
+      throw error;
+    }
   };
 
   const logout = async () => {
