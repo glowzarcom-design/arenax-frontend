@@ -1,4 +1,7 @@
-import { Link } from 'react-router-dom';
+// src/pages/admin/AdminMatchesPage.tsx
+
+import { Link } from 'react-router-dom'; // Link import kiya
+import { ROUTES } from '@/utils/constants'; // ROUTES import kiya
 import { useState, useEffect } from 'react';
 import { Plus, Trophy } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -86,8 +89,8 @@ export default function AdminMatchesPage() {
         prize_pool: Number(formData.prizePool),
         max_players: Number(formData.maxPlayers),
         start_time: new Date(formData.startTime).toISOString(),
-        description: formData.description, // Yeh columns table mein hone chahiye
-        rules: formData.rules,           // Yeh columns table mein hone chahiye
+        description: formData.description,
+        rules: formData.rules,
       },
     ]);
 
@@ -96,10 +99,10 @@ export default function AdminMatchesPage() {
       console.error('Supabase error:', error);
     } else {
       toast.success('Tournament created successfully!');
-      setFormData({ // Form reset karo
+      setFormData({
         title: '', gameName: 'Free Fire', entryFee: '', prizePool: '', maxPlayers: '', startTime: '', description: '', rules: ''
       });
-      fetchTournaments(); // List ko refresh karo
+      fetchTournaments();
     }
   };
   
@@ -130,7 +133,6 @@ export default function AdminMatchesPage() {
             <Input name="prizePool" type="number" value={formData.prizePool} onChange={handleInputChange} placeholder="Prize Pool (₹)" required />
             <Input name="maxPlayers" type="number" value={formData.maxPlayers} onChange={handleInputChange} placeholder="Max Players" required />
             <Input name="startTime" type="datetime-local" value={formData.startTime} onChange={handleInputChange} required />
-            {/* Description and Rules added to form */}
             <textarea name="description" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="Description" className="w-full bg-input border border-border rounded-lg p-2 text-sm" />
             <textarea name="rules" value={formData.rules} onChange={(e) => setFormData({...formData, rules: e.target.value})} placeholder="Rules" className="w-full bg-input border border-border rounded-lg p-2 text-sm" />
             <Button type="submit" className="w-full bg-gradient-primary shadow-glow-primary"><Plus className="h-4 w-4 mr-2" />Create Tournament</Button>
@@ -148,7 +150,14 @@ export default function AdminMatchesPage() {
             ) : (
                 <table className="w-full">
                 <thead>
-                    <tr className="border-b border-border"><th className="text-left py-3 px-2 text-sm font-semibold text-muted-foreground">Title</th><th className="text-left py-3 px-2 text-sm font-semibold text-muted-foreground">Fee/Prize</th><th className="text-left py-3 px-2 text-sm font-semibold text-muted-foreground">Players</th><th className="text-left py-3 px-2 text-sm font-semibold text-muted-foreground">Time</th><th className="text-left py-3 px-2 text-sm font-semibold text-muted-foreground">Status</th></tr>
+                    <tr className="border-b border-border">
+                        <th className="text-left py-3 px-2 text-sm font-semibold text-muted-foreground">Title</th>
+                        <th className="text-left py-3 px-2 text-sm font-semibold text-muted-foreground">Fee/Prize</th>
+                        <th className="text-left py-3 px-2 text-sm font-semibold text-muted-foreground">Players</th>
+                        <th className="text-left py-3 px-2 text-sm font-semibold text-muted-foreground">Time</th>
+                        <th className="text-left py-3 px-2 text-sm font-semibold text-muted-foreground">Status</th>
+                        <th className="text-left py-3 px-2 text-sm font-semibold text-muted-foreground">Action</th> {/* <-- YEH COLUMN ADD HUA HAI */}
+                    </tr>
                 </thead>
                 <tbody>
                     {tournaments.map((t) => (
@@ -158,6 +167,11 @@ export default function AdminMatchesPage() {
                         <td className="py-4 px-2 text-sm">{t.currentPlayers}/{t.maxPlayers}</td>
                         <td className="py-4 px-2 text-sm text-muted-foreground">{formatDateTime(t.startTime)}</td>
                         <td className="py-4 px-2"><span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(t.status)}`}>{t.status}</span></td>
+                        <td className="py-4 px-2">
+                            <Link to={ROUTES.ADMIN_MATCH_DETAIL.replace(':id', t.id)}>
+                                <Button size="sm" variant="outline">Manage</Button>
+                            </Link>
+                        </td> {/* <-- YEH BUTTON ADD HUA HAI */}
                     </tr>
                     ))}
                 </tbody>
