@@ -108,6 +108,7 @@ const AppContent = () => {
         {/* Protected admin routes */}
         <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminRoute><AdminLayout onLogout={logout}><AdminDashboardPage /></AdminLayout></AdminRoute>} />
         <Route path={ROUTES.ADMIN_MATCHES} element={<AdminRoute><AdminLayout onLogout={logout}><AdminMatchesPage /></AdminLayout></AdminRoute>} />
+        <Route path={ROUTES.ADMIN_MATCH_DETAIL} element={<AdminRoute><AdminLayout onLogout={logout}><AdminMatchDetailPage /></AdminLayout></AdminRoute>} />
         <Route path={ROUTES.ADMIN_USERS} element={<AdminRoute><AdminLayout onLogout={logout}><AdminUsersPage /></AdminLayout></AdminRoute>} />
         <Route path={ROUTES.ADMIN_ROLES} element={<AdminRoute><AdminLayout onLogout={logout}><AdminRolesPage /></AdminLayout></AdminRoute>} />
         <Route path={ROUTES.ADMIN_PAYMENTS} element={<AdminRoute><AdminLayout onLogout={logout}><AdminPaymentsPage /></AdminLayout></AdminRoute>} />
