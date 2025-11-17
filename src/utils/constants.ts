@@ -39,6 +39,7 @@ export const ROUTES = {
   ADMIN_USERS: '/admin/users',
   ADMIN_ROLES: '/admin/roles',
   ADMIN_SETTINGS: '/admin/settings',
+  ADMIN_MATCH_DETAIL: '/admin/matches/:id',
 } as const;
 
 // Referral Terms - YEH ADD HUA HAI
