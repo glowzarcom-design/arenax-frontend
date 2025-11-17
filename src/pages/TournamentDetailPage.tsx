@@ -1,6 +1,4 @@
-// src/pages/TournamentDetailPage.tsx
-
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { NeonText } from '@/components/ui/NeonText';
 import { Button } from '@/components/ui/button';
@@ -8,6 +6,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useEffect, useState } from 'react';
 import { formatCurrency, formatDateTime } from '@/utils/helpers';
 import { Trophy, DollarSign, Users, Clock } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient'; // Supabase client import karo
+import { ROUTES } from '@/utils/constants';
 
 // Single tournament ka type define karenge
 interface TournamentDetails {
@@ -30,29 +30,38 @@ export default function TournamentDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Yahan future me Supabase se is ID ka data fetch hoga
-    console.log(`Fetching data for tournament ID: ${id}`);
-    
-    // Abhi ke liye dummy data dikha kar loading state set kar denge
-    const timer = setTimeout(() => {
-       const mockTournament: TournamentDetails = {
-          id: id || '1',
-          title: 'Free Fire Solo Championship',
-          gameName: 'Free Fire',
-          entryFee: 50,
-          prizePool: 5000,
-          maxPlayers: 100,
-          currentPlayers: 87,
-          startTime: new Date().toISOString(),
-          status: 'upcoming',
-          description: 'The ultimate solo battle for glory and prizes. Are you ready to be the last one standing?',
-          rules: '1. All players must join on time.\n2. No hacks or cheats allowed.\n3. Admin decision is final.'
-       };
-       setTournament(mockTournament);
-       setIsLoading(false);
-    }, 1500);
+    const fetchTournamentDetails = async () => {
+      if (!id) return;
 
-    return () => clearTimeout(timer);
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching tournament details:', error);
+        setTournament(null);
+      } else if (data) {
+        setTournament({
+            id: data.id,
+            title: data.title,
+            gameName: data.game_name,
+            entryFee: data.entry_fee,
+            prizePool: data.prize_pool,
+            maxPlayers: data.max_players,
+            currentPlayers: data.joined_count,
+            startTime: data.start_time,
+            status: data.status,
+            description: data.description || 'No description available.',
+            rules: data.rules || 'No rules specified.'
+        });
+      }
+      setIsLoading(false);
+    };
+
+    fetchTournamentDetails();
   }, [id]);
 
   if (isLoading) {
@@ -80,6 +89,9 @@ export default function TournamentDetailPage() {
       <div className="container mx-auto px-4 py-16 text-center">
         <NeonText as="h2" color="accent">Tournament Not Found</NeonText>
         <p className="text-muted-foreground mt-2">The tournament you are looking for does not exist or has been removed.</p>
+        <Link to={ROUTES.TOURNAMENTS}>
+            <Button variant="outline" className="mt-4">Back to Tournaments</Button>
+        </Link>
       </div>
     );
   }
@@ -88,7 +100,7 @@ export default function TournamentDetailPage() {
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <Card className="p-6 sm:p-8 bg-card/50 backdrop-blur-sm border-2 border-primary/20 shadow-lg">
         <div className="mb-8">
-            <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary mb-3 capitalize">{tournament.status}</span>
+            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary mb-3 capitalize ${tournament.status === 'live' && 'animate-pulse'}`}>{tournament.status}</span>
             <NeonText as="h1" className="text-3xl md:text-4xl">
             {tournament.title}
             </NeonText>
@@ -114,7 +126,7 @@ export default function TournamentDetailPage() {
         </div>
 
         <Button size="lg" className="w-full bg-gradient-primary shadow-glow-primary text-lg" disabled={tournament.status !== 'upcoming' || tournament.currentPlayers >= tournament.maxPlayers}>
-          {tournament.currentPlayers >= tournament.maxPlayers ? 'Tournament Full' : `Join Tournament (${formatCurrency(tournament.entryFee)})`}
+          {tournament.status !== 'upcoming' ? tournament.status.toUpperCase() : tournament.currentPlayers >= tournament.maxPlayers ? 'Tournament Full' : `Join Tournament (${formatCurrency(tournament.entryFee)})`}
         </Button>
       </Card>
     </div>
