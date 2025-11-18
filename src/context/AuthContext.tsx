@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw new Error('Invalid Admin Credentials');
     }
   };
-  
+  
   // Helper function to create the profile details in the 'profiles' table.
   const createProfile = async ({ user, username, ign, freeFireId }: { user: User, username: string, ign: string, freeFireId: string }) => {
     const { error: insertError } = await supabase
@@ -83,6 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         ign: ign,
         free_fire_id: freeFireId,
         role: 'user', // Default role set here
+        referral_code: null, // <--- FINAL FIX: Added referral_code to ensure INSERT success
       })
       .select()
       .single();
