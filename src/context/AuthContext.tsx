@@ -18,14 +18,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .select('username, ign, free_fire_id, role, referral_code')
         .eq('id', user.id)
         .single();
-      // If error is related to 0 rows (PGRST116), it will be caught below, 
-      // but if other errors occur, we throw it here.
-      if (error && error.code !== 'PGRST116') { throw error; } 
+
+      // If profile is not found (PGRST116: 0 rows), return an error/null for now.
+      // This is the error seen previously: "The result contains 0 rows"
+      if (error && error.code !== 'PGRST116') { 
+          console.error("Error fetching profile after login/signup:", error);
+          throw error; 
+      } 
       
       return {
-        id: user.id, email: user.email || '', username: data.username, ign: data.ign,
-        freeFireId: data.free_fire_id, role: data.role || 'user',
-        referralCode: data.referral_code || '', createdAt: user.created_at,
+        id: user.id, 
+        email: user.email || '', 
+        username: data?.username || 'N/A', // Null check added
+        ign: data?.ign || 'N/A',
+        freeFireId: data?.free_fire_id || 'N/A', 
+        role: data?.role || 'user',
+        referralCode: data?.referral_code || '', 
+        createdAt: user.created_at,
       };
     } catch (e) {
       console.error('Error fetching profile:', e);
@@ -75,39 +84,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
-  // Helper function to create the profile details in the 'profiles' table.
+  // Inline function to handle profile creation during signup
   const createProfile = async ({ user, username, ign, freeFireId }: { user: User, username: string, ign: string, freeFireId: string }) => {
+    console.log("--- STARTING PROFILE INSERT ---");
+    
+    const profileData = {
+      id: user.id,
+      username: username,
+      ign: ign,
+      email: user.email, // <--- THE CRITICAL FIX
+      free_fire_id: freeFireId,
+      role: 'user', 
+      referral_code: null,
+    };
+
+    console.log("Inserting data:", profileData);
+
     const { error: insertError } = await supabase
       .from('profiles')
-      .insert({
-        id: user.id, // Supabase Auth ID
-        username: username,
-        ign: ign,
-        email: user.email, // <--- CRITICAL FIX: Add email for NOT NULL constraint
-        free_fire_id: freeFireId,
-        role: 'user', // Default role set here
-        referral_code: null,
-      })
+      .insert(profileData)
       .select()
       .single();
 
     if (insertError) {
-      console.error("Critical Error: Failed to save profile details.", insertError);
-      throw new Error("Account created, but failed to save profile details. Please contact support.");
+      console.error("CRITICAL INSERT ERROR: Profile insertion failed.", insertError);
+      // Log the row data that failed, which was the issue previously
+      throw new Error(`Account created, but failed to save profile details. Error details: ${insertError.message}.`);
     }
+    console.log("--- PROFILE INSERT SUCCESSFUL ---");
   };
 
-  // Helper function for when the user is logged in immediately.
-  const createProfileAndSetUser = async ({ user, username, ign, freeFireId }: { user: User, username: string, ign: string, freeFireId: string }) => {
-    await createProfile({ user, username, ign, freeFireId });
-    const profile = await getProfile(user);
-    setUser(profile);
-  };
-
-  // ----- YEH HAI FINAL SIGNUP FUNCTION (FIXED) -----
+  // ----- YEH HAI FINAL SIGNUP FUNCTION (SUPER-ROBUST) -----
   const signup = async (data: SignupData) => {
     const { email, password, username, ign, freeFireId } = data;
 
+    console.log('1. Starting Supabase Auth sign up for:', email);
+    
     // Step 1: Create the user in Supabase Auth.
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
@@ -115,21 +127,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     if (authError) {
+      console.error('2. Auth Error:', authError);
       throw authError;
     }
 
-    // Supabase Auth requires email verification. User will get logged in ONLY after they click the email link.
-    if (authData.user && authData.session) {
-      // Agar Supabase ne user ko turant login kar diya (jo ki email verification off hone par hota hai)
-      await createProfileAndSetUser({ user: authData.user, username, ign, freeFireId });
-      return { success: true, message: 'Login successful!' };
-    } else if (authData.user && !authData.session) {
-      // Agar user create hua, but session nahi bana (kyunki email verification pending hai)
+    if (!authData.user) {
+      throw new Error("User object is null after signup attempt.");
+    }
+
+    console.log('2. Auth Success. User ID:', authData.user.id, 'Session:', !!authData.session);
+
+    try {
+      // Step 2: Create the profile details in the 'profiles' table.
       await createProfile({ user: authData.user, username, ign, freeFireId });
-      return { success: true, message: 'Please check your email to confirm your account and log in.' };
+    } catch (profileError) {
+      console.error("Error creating profile, but user auth succeeded:", profileError);
+      // Agar profile creation fail hua, toh error throw kar denge, lekin user ka account Supabase mein ban chuka hai.
+      throw profileError;
+    }
+
+
+    // Step 3: Handle Session/Redirection
+    if (authData.session) {
+      // If Supabase logged the user in immediately (email verification OFF)
+      console.log('3. Session found. Fetching Profile...');
+      const profile = await getProfile(authData.user);
+      setUser(profile);
+      console.log('4. Profile created and User set. Login successful.');
+      return { success: true, message: 'Login successful!' };
     } else {
-      // Fallback error
-      throw new Error("Signup process failed to complete.");
+      // If user created, but session not made (email verification pending)
+      console.log('3. No Session (Email Verification Pending). Returning email check message.');
+      return { success: true, message: 'Please check your email to confirm your account and log in.' };
     }
   };
 
