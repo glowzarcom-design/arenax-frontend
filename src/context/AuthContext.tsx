@@ -81,9 +81,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         id: user.id, // Supabase Auth ID
         username: username,
         ign: ign,
+        email: user.email, // <--- CRITICAL FIX: Add email for NOT NULL constraint
         free_fire_id: freeFireId,
         role: 'user', // Default role set here
-        referral_code: null, // <--- FINAL FIX: Added referral_code to ensure INSERT success
+        referral_code: null,
       })
       .select()
       .single();
