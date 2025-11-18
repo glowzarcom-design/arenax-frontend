@@ -1,27 +1,30 @@
-// src/lib/supabaseClient.ts (FINAL FIXED CODE)
+// src/lib/supabaseClient.ts (FINAL ATTEMPT: VITE AND NEXT_PUBLIC CHECK)
 
 import { createClient } from '@supabase/supabase-js';
 
-// Vercel/Next.js ke liye NEXT_PUBLIC_ prefix use karte hain
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Pehle VITE variables check karte hain (jo tumhare original code mein tha)
+const viteUrl = import.meta.env.VITE_SUPABASE_URL;
+const viteKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Ek Global Variable banao jo export hoga
+// Phir NEXT_PUBLIC variables check karte hain (jo Vercel par common hai)
+const nextUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const nextKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+// Jo bhi key available ho, use select karo (Vite ko priority denge)
+const supabaseUrl = viteUrl || nextUrl;
+const supabaseAnonKey = viteKey || nextKey;
+
 let client = null;
 
 if (supabaseUrl && supabaseAnonKey) {
   // Agar keys available hain, toh client banao
   client = createClient(supabaseUrl, supabaseAnonKey);
 } else {
-  // Agar keys available nahi hain (e.g. Vercel mein set nahi hai)
-  console.error("Supabase URL or Anon Key is missing. Check your Vercel environment variables.");
-  
-  // Optional: Error throw karo taki development mein pata chal jaye
+  console.error("Critical: Supabase Environment Keys missing.");
   if (typeof window === 'undefined') {
     throw new Error("Critical: Missing Supabase Environment Keys during build/server process.");
   }
 }
 
-// Ensure client is exported, even if it's null (for safety)
-// Hum maan rahe hain ki agar deployment successful ho raha hai, toh client bana hoga.
+// Client ko export karo
 export const supabase = client as ReturnType<typeof createClient>;
