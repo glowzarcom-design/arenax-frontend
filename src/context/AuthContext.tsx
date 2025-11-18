@@ -18,7 +18,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .select('username, ign, free_fire_id, role, referral_code')
         .eq('id', user.id)
         .single();
-      if (error) { throw error; }
+      // If error is related to 0 rows (PGRST116), it will be caught below, 
+      // but if other errors occur, we throw it here.
+      if (error && error.code !== 'PGRST116') { throw error; } 
       
       return {
         id: user.id, email: user.email || '', username: data.username, ign: data.ign,
