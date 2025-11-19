@@ -10,7 +10,7 @@ import { ROUTES } from '@/utils/constants';
 import { toast } from 'sonner';
 
 export default function LoginPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // Iski zaroorat ab nahi hai, par rehne do
   const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
@@ -27,16 +27,16 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
+      // Sirf login function call karo. Navigation App.tsx handle karega.
       await login(formData);
-      toast.success('Logged in successfully!');
-      navigate(ROUTES.DASHBOARD);
-    } catch (error: any) { // 'any' type use karein taaki error.message access kar sakein
-      console.error("Login Page Error:", error); // Asli error console mein dikhega
-      // Ab hum Supabase se aaya asli error message dikhayenge
+      // toast aur navigate yahan se hata diya gaya hai.
+    } catch (error: any) {
+      console.error("Login Page Error:", error);
       toast.error(error.message || 'Invalid email or password');
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Error aane par loading band karna zaroori hai
     }
+    // finally block yahan se hata diya gaya hai kyunki success par loading band nahi karna,
+    // page navigate ho jayega.
   };
 
   return (
