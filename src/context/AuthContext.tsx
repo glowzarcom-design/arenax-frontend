@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { AuthUser, AuthContextType, LoginCredentials, SignupData } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
 import { Session, User } from '@supabase/supabase-js';
-
+console.log("AuthContext LOADED - VERSION 2 - AGAR YEH DIKHE TOH NAYA CODE HAI");
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
