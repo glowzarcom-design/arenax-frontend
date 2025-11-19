@@ -12,12 +12,12 @@ import { AdminLayout } from "./components/layout/AdminLayout";
 import { ROUTES } from "./utils/constants";
 import NotFound from "./pages/NotFound";
 
-// Lazy load all pages for performance
+// Lazy load saare pages
 const HomePage = lazy(() => import("./pages/HomePage"));
 const SignupPage = lazy(() => import("./pages/SignupPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const TournamentsPage = lazy(() => import("./pages/TournamentsPage"));
-const TournamentDetailPage = lazy(() => import("./pages/TournamentDetailPage")); // <-- YEH LINE ADD HUI HAI
+const TournamentDetailPage = lazy(() => import("./pages/TournamentDetailPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const ReferralPage = lazy(() => import("./pages/ReferralPage"));
@@ -45,47 +45,54 @@ const AdminAffiliatesPage = lazy(() => import("./pages/admin/AdminAffiliatesPage
 
 const queryClient = new QueryClient();
 
-// Loading component
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen bg-background">
     <div className="animate-pulse-neon text-primary text-2xl font-bold">Loading...</div>
   </div>
 );
 
-// Protected route wrapper
+// ----- YEH WOHI ProtectedRoute HAI -----
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
-  
   if (isLoading) return <PageLoader />;
   if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN} replace />;
-  
   return <>{children}</>;
 };
 
-// Admin route wrapper
+// ----- YEH NAYA COMPONENT ADD HUA HAI -----
+// Yeh component user ko login/signup page par jaane se rokega agar woh pehle se login hai
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+    const { isAuthenticated, isLoading } = useAuth();
+    if (isLoading) return <PageLoader />;
+    if (isAuthenticated) return <Navigate to={ROUTES.DASHBOARD} replace />;
+    return <>{children}</>;
+}
+
+// AdminRoute waisa hi rahega
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
-  
   if (isLoading) return <PageLoader />;
   if (!isAuthenticated || user?.role !== 'admin') {
     return <Navigate to={ROUTES.ADMIN_LOGIN} replace />;
   }
-  
   return <>{children}</>;
 };
 
+// ----- AppContent mein Routes update hue hain -----
 const AppContent = () => {
   const { isAuthenticated, logout } = useAuth();
 
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Public routes with MainLayout */}
+        {/* Public routes jo login ke baad nahi dikhne chahiye */}
+        <Route path={ROUTES.LOGIN} element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path={ROUTES.SIGNUP} element={<PublicRoute><SignupPage /></PublicRoute>} />
+        
+        {/* Baaki saare public routes */}
         <Route path={ROUTES.HOME} element={<MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><HomePage /></MainLayout>} />
-        <Route path={ROUTES.SIGNUP} element={<SignupPage />} />
-        <Route path={ROUTES.LOGIN} element={<LoginPage />} />
         <Route path={ROUTES.TOURNAMENTS} element={<MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><TournamentsPage /></MainLayout>} />
-        <Route path={ROUTES.MATCH_DETAIL} element={<MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><TournamentDetailPage /></MainLayout>} /> {/* <-- YEH LINE ADD HUI HAI */}
+        <Route path={ROUTES.MATCH_DETAIL} element={<MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><TournamentDetailPage /></MainLayout>} />
         <Route path={ROUTES.LEADERBOARD} element={<MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><LeaderboardPage /></MainLayout>} />
         <Route path={ROUTES.FAQ} element={<MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><FaqPage /></MainLayout>} />
         <Route path={ROUTES.HOW_IT_WORKS} element={<MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><HowItWorksPage /></MainLayout>} />
@@ -114,14 +121,14 @@ const AppContent = () => {
         <Route path={ROUTES.ADMIN_PAYMENTS} element={<AdminRoute><AdminLayout onLogout={logout}><AdminPaymentsPage /></AdminLayout></AdminRoute>} />
         <Route path={ROUTES.ADMIN_AFFILIATES} element={<AdminRoute><AdminLayout onLogout={logout}><AdminAffiliatesPage /></AdminLayout></AdminRoute>} />
         <Route path={ROUTES.ADMIN_SETTINGS} element={<AdminRoute><AdminLayout onLogout={logout}><AdminSettingsPage /></AdminLayout></AdminRoute>} />
-
-        {/* 404 */}
+        
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
   );
 };
 
+// App component waisa hi rahega
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
