@@ -12,7 +12,7 @@ import { AdminLayout } from "./components/layout/AdminLayout";
 import { ROUTES } from "./utils/constants";
 import NotFound from "./pages/NotFound";
 
-// Lazy load saare pages
+// Lazy load saare pages (yeh waisa hi rahega)
 const HomePage = lazy(() => import("./pages/HomePage"));
 const SignupPage = lazy(() => import("./pages/SignupPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -32,7 +32,7 @@ const WithdrawPage = lazy(() => import("./pages/WithdrawPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
 const AboutUsPage = lazy(() => import("./pages/AboutUsPage"));
 
-// Admin pages
+// Admin pages (yeh waisa hi rahega)
 const AdminMatchDetailPage = lazy(() => import("./pages/admin/AdminMatchDetailPage"));
 const AdminLoginPage = lazy(() => import("./pages/admin/AdminLoginPage"));
 const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"));
@@ -45,6 +45,7 @@ const AdminAffiliatesPage = lazy(() => import("./pages/admin/AdminAffiliatesPage
 
 const queryClient = new QueryClient();
 
+// Loading component (yeh waisa hi rahega)
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen bg-background">
     <div className="animate-pulse-neon text-primary text-2xl font-bold">Loading...</div>
@@ -52,6 +53,7 @@ const PageLoader = () => (
 );
 
 // ----- YEH WOHI ProtectedRoute HAI -----
+// User ko login page par bhejta hai agar woh login nahi hai
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) return <PageLoader />;
@@ -60,7 +62,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 // ----- YEH NAYA COMPONENT ADD HUA HAI -----
-// Yeh component user ko login/signup page par jaane se rokega agar woh pehle se login hai
+// User ko dashboard par bhejta hai agar woh pehle se login hai
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
     const { isAuthenticated, isLoading } = useAuth();
     if (isLoading) return <PageLoader />;
@@ -78,18 +80,18 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// ----- AppContent mein Routes update hue hain -----
+// ----- AppContent mein Routes ab bilkul sahi hain -----
 const AppContent = () => {
   const { isAuthenticated, logout } = useAuth();
 
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Public routes jo login ke baad nahi dikhne chahiye */}
-        <Route path={ROUTES.LOGIN} element={<PublicRoute><LoginPage /></PublicRoute>} />
+        {/* === PUBLIC ROUTES (Sirf logged-out users ke liye) === */}
         <Route path={ROUTES.SIGNUP} element={<PublicRoute><SignupPage /></PublicRoute>} />
+        <Route path={ROUTES.LOGIN} element={<PublicRoute><LoginPage /></PublicRoute>} />
         
-        {/* Baaki saare public routes */}
+        {/* === PUBLIC ROUTES (Sabke liye) === */}
         <Route path={ROUTES.HOME} element={<MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><HomePage /></MainLayout>} />
         <Route path={ROUTES.TOURNAMENTS} element={<MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><TournamentsPage /></MainLayout>} />
         <Route path={ROUTES.MATCH_DETAIL} element={<MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><TournamentDetailPage /></MainLayout>} />
@@ -102,17 +104,15 @@ const AppContent = () => {
         <Route path={ROUTES.CONTACT} element={<MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><ContactPage /></MainLayout>} />
         <Route path={ROUTES.ABOUT_US} element={<MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><AboutUsPage /></MainLayout>} />
 
-        {/* Protected user routes */}
+        {/* === PROTECTED USER ROUTES (Sirf logged-in users ke liye) === */}
         <Route path={ROUTES.DASHBOARD} element={<ProtectedRoute><MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><DashboardPage /></MainLayout></ProtectedRoute>} />
         <Route path={ROUTES.PROFILE} element={<ProtectedRoute><MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><ProfilePage /></MainLayout></ProtectedRoute>} />
         <Route path={ROUTES.REFERRAL} element={<ProtectedRoute><MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><ReferralPage /></MainLayout></ProtectedRoute>} />
         <Route path={ROUTES.WALLET} element={<ProtectedRoute><MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><WalletPage /></MainLayout></ProtectedRoute>} />
         <Route path={ROUTES.WITHDRAW} element={<ProtectedRoute><MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><WithdrawPage /></MainLayout></ProtectedRoute>} />
 
-        {/* Admin Login Route */}
+        {/* === ADMIN ROUTES === */}
         <Route path={ROUTES.ADMIN_LOGIN} element={<AdminLoginPage />} />
-
-        {/* Protected admin routes */}
         <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminRoute><AdminLayout onLogout={logout}><AdminDashboardPage /></AdminLayout></AdminRoute>} />
         <Route path={ROUTES.ADMIN_MATCHES} element={<AdminRoute><AdminLayout onLogout={logout}><AdminMatchesPage /></AdminLayout></AdminRoute>} />
         <Route path={ROUTES.ADMIN_MATCH_DETAIL} element={<AdminRoute><AdminLayout onLogout={logout}><AdminMatchDetailPage /></AdminLayout></AdminRoute>} />
@@ -121,7 +121,8 @@ const AppContent = () => {
         <Route path={ROUTES.ADMIN_PAYMENTS} element={<AdminRoute><AdminLayout onLogout={logout}><AdminPaymentsPage /></AdminLayout></AdminRoute>} />
         <Route path={ROUTES.ADMIN_AFFILIATES} element={<AdminRoute><AdminLayout onLogout={logout}><AdminAffiliatesPage /></AdminLayout></AdminRoute>} />
         <Route path={ROUTES.ADMIN_SETTINGS} element={<AdminRoute><AdminLayout onLogout={logout}><AdminSettingsPage /></AdminLayout></AdminRoute>} />
-        
+
+        {/* === 404 PAGE === */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
