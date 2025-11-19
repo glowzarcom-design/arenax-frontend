@@ -20,21 +20,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       // If profile is not found (PGRST116: 0 rows), return an error/null for now.
-      // This is the error seen previously: "The result contains 0 rows"
-      if (error && error.code !== 'PGRST116') { 
-          console.error("Error fetching profile after login/signup:", error);
-          throw error; 
-      } 
+      // This is the error seen previously: "The result contains 0 rows"
+      if (error && error.code !== 'PGRST116') { 
+          console.error("Error fetching profile after login/signup:", error);
+          throw error; 
+      } 
       
       return {
-        id: user.id, 
-        email: user.email || '', 
-        username: data?.username || 'N/A', // Null check added
-        ign: data?.ign || 'N/A',
-        freeFireId: data?.free_fire_id || 'N/A', 
-        role: data?.role || 'user',
-        referralCode: data?.referral_code || '', 
-        createdAt: user.created_at,
+        id: user.id, 
+        email: user.email || '', 
+        username: data?.username || 'N/A', // Null check added
+        ign: data?.ign || 'N/A',
+        freeFireId: data?.free_fire_id || 'N/A', 
+        role: data?.role || 'user',
+        referralCode: data?.referral_code || '', 
+        createdAt: user.created_at,
       };
     } catch (e) {
       console.error('Error fetching profile:', e);
@@ -87,14 +87,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Inline function to handle profile creation during signup
   const createProfile = async ({ user, username, ign, freeFireId }: { user: User, username: string, ign: string, freeFireId: string }) => {
     console.log("--- STARTING PROFILE INSERT ---");
-    
+    
     const profileData = {
       id: user.id,
       username: username,
       ign: ign,
-      email: user.email, // <--- THE CRITICAL FIX
+      email: user.email, 
       free_fire_id: freeFireId,
-      role: 'user', 
+      role: 'user', 
       referral_code: null,
     };
 
@@ -108,7 +108,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (insertError) {
       console.error("CRITICAL INSERT ERROR: Profile insertion failed.", insertError);
-      // Log the row data that failed, which was the issue previously
       throw new Error(`Account created, but failed to save profile details. Error details: ${insertError.message}.`);
     }
     console.log("--- PROFILE INSERT SUCCESSFUL ---");
@@ -119,7 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { email, password, username, ign, freeFireId } = data;
 
     console.log('1. Starting Supabase Auth sign up for:', email);
-    
+    
     // Step 1: Create the user in Supabase Auth.
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
@@ -142,7 +141,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await createProfile({ user: authData.user, username, ign, freeFireId });
     } catch (profileError) {
       console.error("Error creating profile, but user auth succeeded:", profileError);
-      // Agar profile creation fail hua, toh error throw kar denge, lekin user ka account Supabase mein ban chuka hai.
       throw profileError;
     }
 
@@ -162,13 +160,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // 🛡️ NEW FUNCTION: Update Profile Details
+  const updateProfile = async (data: { username?: string, ign?: string, freeFireId?: string, referralCode?: string }) => {
+    if (!user) throw new Error("User not authenticated.");
+
+    console.log("--- STARTING PROFILE UPDATE ---");
+
+    const profileData: {
+      username?: string;
+      ign?: string;
+      free_fire_id?: string; // DB column name
+      referral_code?: string; // DB column name
+    } = {};
+
+    // Only include fields that are present in the data object
+    if (data.username !== undefined) profileData.username = data.username;
+    if (data.ign !== undefined) profileData.ign = data.ign;
+    if (data.freeFireId !== undefined) profileData.free_fire_id = data.freeFireId;
+    if (data.referralCode !== undefined) profileData.referral_code = data.referralCode;
+
+    if (Object.keys(profileData).length === 0) {
+        console.log("No data provided for profile update. Skipping DB call.");
+        return; 
+    }
+    
+    console.log("Updating data:", profileData);
+
+    const { error } = await supabase
+      .from('profiles')
+      .update(profileData)
+      .eq('id', user.id); 
+
+    if (error) {
+      console.error("CRITICAL UPDATE ERROR: Profile update failed.", error);
+      throw error;
+    }
+
+    // Update local state (user) after successful DB update
+    setUser(prev => prev ? {
+      ...prev,
+      username: data.username !== undefined ? data.username : prev.username,
+      ign: data.ign !== undefined ? data.ign : prev.ign,
+      freeFireId: data.freeFireId !== undefined ? data.freeFireId : prev.freeFireId,
+      referralCode: data.referralCode !== undefined ? data.referralCode : prev.referralCode,
+    } : null);
+    
+    console.log("--- PROFILE UPDATE SUCCESSFUL ---");
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, adminLogin, signup, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, adminLogin, signup, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
