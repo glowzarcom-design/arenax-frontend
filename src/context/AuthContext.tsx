@@ -1,5 +1,5 @@
 // src/context/AuthContext.tsx
-
+console.log("AuthContext LOADED - VERSION 2 - AGAR YEH DIKHE TOH NAYA CODE HAI");
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AuthUser, AuthContextType, LoginCredentials, SignupData } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
