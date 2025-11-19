@@ -22,6 +22,7 @@ export default function LoginPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // ----- YEH FUNCTION UPDATE HUA HAI -----
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -29,8 +30,10 @@ export default function LoginPage() {
       await login(formData);
       toast.success('Logged in successfully!');
       navigate(ROUTES.DASHBOARD);
-    } catch (error) {
-      toast.error('Invalid email or password');
+    } catch (error: any) { // 'any' type use karein taaki error.message access kar sakein
+      console.error("Login Page Error:", error); // Asli error console mein dikhega
+      // Ab hum Supabase se aaya asli error message dikhayenge
+      toast.error(error.message || 'Invalid email or password');
     } finally {
       setIsLoading(false);
     }
