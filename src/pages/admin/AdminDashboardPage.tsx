@@ -8,54 +8,65 @@ import { formatCurrency } from '@/utils/helpers';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/utils/constants';
-import { Skeleton } from '@/components/ui/skeleton'; // Loading ke liye Skeleton import karenge
+import { Skeleton } from '@/components/ui/skeleton';
+import { supabase } from '@/lib/supabaseClient'; // Supabase client import kiya
 
-// AdminStats ka type define karenge
 interface AdminStats {
   totalUsers: number;
-  activeUsers: number;
+  activeUsers: number; // Isko abhi ke liye total users hi maanenge
   totalTournaments: number;
   activeTournaments: number;
-  totalRevenue: number;
+  totalRevenue: number; // Yeh calculated field hoga
   pendingWithdrawals: number;
   totalDeposits: number;
   totalPayouts: number;
 }
 
-// RecentActivity ka type define karenge
-type RecentActivityItem = {
-  type: 'user_signup' | 'tournament_join' | 'withdrawal' | 'deposit';
-  user: string;
-  time: string;
-  tournament?: string;
-  amount?: number;
-};
-
 export default function AdminDashboardPage() {
-  // Dummy data ko state se replace karenge
   const [stats, setStats] = useState<AdminStats | null>(null);
-  const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Yahan par future me Supabase se data fetch karne ka code aayega
-    // Abhi ke liye, hum 2 second ka loading dikha kar sab zero set kar denge
-    const timer = setTimeout(() => {
-      setStats({
-        totalUsers: 0,
-        activeUsers: 0,
-        totalTournaments: 0,
-        activeTournaments: 0,
-        totalRevenue: 0,
-        pendingWithdrawals: 0,
-        totalDeposits: 0,
-        totalPayouts: 0,
-      });
-      setRecentActivity([]);
-      setIsLoading(false);
-    }, 1500); // 1.5 seconds ka delay
+    const fetchAdminStats = async () => {
+      setIsLoading(true);
 
-    return () => clearTimeout(timer); // Cleanup
+      try {
+        // Alag-alag data ko ek saath fetch karenge
+        const [
+          { count: totalUsers, error: userError },
+          { count: totalTournaments, error: tournamentError },
+          { count: activeTournaments, error: activeTournamentError },
+          // Abhi ke liye aage ke stats ko zero rakhenge, inke liye complex queries lagegi
+        ] = await Promise.all([
+          supabase.from('profiles').select('*', { count: 'exact', head: true }),
+          supabase.from('matches').select('*', { count: 'exact', head: true }),
+          supabase.from('matches').select('*', { count: 'exact', head: true }).eq('status', 'live'),
+        ]);
+
+        if (userError || tournamentError || activeTournamentError) {
+          throw new Error('Failed to fetch stats');
+        }
+
+        // Stats ko set karenge
+        setStats({
+          totalUsers: totalUsers ?? 0,
+          activeUsers: totalUsers ?? 0, // Abhi ke liye dummy
+          totalTournaments: totalTournaments ?? 0,
+          activeTournaments: activeTournaments ?? 0,
+          totalRevenue: 0, // Iske liye alag se logic lagega
+          pendingWithdrawals: 0, // Iske liye alag se logic lagega
+          totalDeposits: 0, // Iske liye alag se logic lagega
+          totalPayouts: 0, // Iske liye alag se logic lagega
+        });
+
+      } catch (error) {
+        console.error("Error fetching admin stats:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAdminStats();
   }, []);
 
   const quickStats = [
@@ -64,8 +75,7 @@ export default function AdminDashboardPage() {
     { label: 'Total Revenue', value: formatCurrency(stats?.totalRevenue ?? 0), icon: DollarSign, color: 'text-success', bgColor: 'bg-success/10' },
     { label: 'Pending Withdrawals', value: stats?.pendingWithdrawals ?? 0, icon: TrendingDown, color: 'text-warning', bgColor: 'bg-warning/10' },
   ];
-  
-  // Loading state ke liye Skeleton component
+
   if (isLoading) {
     return (
       <div>
@@ -82,6 +92,7 @@ export default function AdminDashboardPage() {
     );
   }
 
+  // Baaki ka component aesa hi rahega
   return (
     <div>
       <div className="mb-8">
@@ -91,7 +102,6 @@ export default function AdminDashboardPage() {
         <p className="text-muted-foreground">Overview of platform performance</p>
       </div>
 
-      {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {quickStats.map((stat, index) => (
           <Card key={index} className="p-6 bg-gradient-card border-card-border">
@@ -109,7 +119,6 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Platform Overview */}
         <Card className="p-6 bg-gradient-card border-card-border">
           <h2 className="text-xl font-bold mb-6">Platform Overview</h2>
           <div className="space-y-4">
@@ -132,43 +141,17 @@ export default function AdminDashboardPage() {
           </div>
         </Card>
 
-        {/* Recent Activity */}
         <Card className="p-6 bg-gradient-card border-card-border">
           <div className="flex items-center gap-3 mb-6">
             <Activity className="h-6 w-6 text-primary" />
             <h2 className="text-xl font-bold">Recent Activity</h2>
           </div>
-          {recentActivity.length > 0 ? (
-            <div className="space-y-4">
-              {recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-start gap-3 pb-4 border-b border-border last:border-0">
-                  <div className={`p-2 rounded-full ${ activity.type === 'user_signup' ? 'bg-primary/10' : activity.type === 'tournament_join' ? 'bg-secondary/10' : activity.type === 'withdrawal' ? 'bg-accent/10' : 'bg-success/10'}`}>
-                    {activity.type === 'user_signup' && <Users className="h-4 w-4 text-primary" />}
-                    {activity.type === 'tournament_join' && <Trophy className="h-4 w-4 text-secondary" />}
-                    {activity.type === 'withdrawal' && <TrendingDown className="h-4 w-4 text-accent" />}
-                    {activity.type === 'deposit' && <TrendingUp className="h-4 w-4 text-success" />}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">
-                      {activity.type === 'user_signup' && `${activity.user} signed up`}
-                      {activity.type === 'tournament_join' && `${activity.user} joined ${activity.tournament}`}
-                      {activity.type === 'withdrawal' && activity.amount && `${activity.user} withdrew ${formatCurrency(activity.amount)}`}
-                      {activity.type === 'deposit' && activity.amount && `${activity.user} deposited ${formatCurrency(activity.amount)}`}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-40">
-                <p className="text-muted-foreground">No recent activity.</p>
-            </div>
-          )}
+          <div className="flex items-center justify-center h-40">
+            <p className="text-muted-foreground">No recent activity to show.</p>
+          </div>
         </Card>
       </div>
 
-      {/* Quick Actions */}
       <Card className="p-6 bg-gradient-card border-card-border">
         <h2 className="text-xl font-bold mb-6">Quick Actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
