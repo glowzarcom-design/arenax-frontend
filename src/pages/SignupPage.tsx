@@ -1,6 +1,8 @@
+// src/pages/SignupPage.tsx
+
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -10,7 +12,7 @@ import { ROUTES } from '@/utils/constants';
 import { toast } from 'sonner';
 
 export default function SignupPage() {
-  const navigate = useNavigate(); // Iski zaroorat ab nahi hai, par rehne do
+  const navigate = useNavigate();
   const { signup } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
@@ -26,7 +28,6 @@ export default function SignupPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // ----- YEH FUNCTION UPDATE HUA HAI -----
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -56,12 +57,13 @@ export default function SignupPage() {
       });
 
       toast.success(response.message);
-      // navigate waali lines yahan se hata di gayi hain.
-      // Agar email verification ON hai, toh user ko manual login karna hoga.
-      // Agar OFF hai, toh App.tsx usko aage bhej dega.
-      navigate(ROUTES.LOGIN); // Signup ke baad user ko login page par bhej do.
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to create account. Please try again.';
+      navigate(ROUTES.LOGIN);
+    } catch (error: unknown) { // <-- YEH LINE CHANGE HUI HAI
+      // Ab hum error ko safely handle karenge
+      let errorMessage = 'Failed to create account. Please try again.';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -83,7 +85,6 @@ export default function SignupPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
-          {/* ...form ke baaki saare fields waise hi rahenge... */}
           <div>
             <label className="block text-sm font-medium mb-2 text-foreground">Username</label>
             <Input name="username" type="text" placeholder="Choose a username" value={formData.username} onChange={handleChange} required />

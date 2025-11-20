@@ -1,20 +1,17 @@
 // src/pages/admin/AdminLoginPage.tsx
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { NeonText } from '@/components/ui/NeonText';
 import { LogoDisplay } from '@/components/ui/LogoDisplay';
-import { ROUTES } from '@/utils/constants';
 import { toast } from 'sonner';
 import { Shield } from 'lucide-react';
 
 export default function AdminLoginPage() {
-  const navigate = useNavigate();
-  const { adminLogin } = useAuth(); // We will create this new function
+  const { adminLogin } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -34,9 +31,12 @@ export default function AdminLoginPage() {
       }
       await adminLogin(formData);
       toast.success('Admin login successful!');
-      navigate(ROUTES.ADMIN_DASHBOARD);
-    } catch (error) {
-      toast.error('Invalid Admin Credentials');
+    } catch (error: unknown) { // <-- YEH LINE CHANGE HUI HAI
+      let errorMessage = 'Invalid Admin Credentials';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

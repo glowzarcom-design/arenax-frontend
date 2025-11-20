@@ -6,13 +6,14 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthContext";
+import { useAuth } from "./hooks/useAuth";
 import { MainLayout } from "./components/layout/MainLayout";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { ROUTES } from "./utils/constants";
 import NotFound from "./pages/NotFound";
 
-// Lazy loading (No changes here)
+// Lazy loading
 const HomePage = lazy(() => import("./pages/HomePage"));
 const SignupPage = lazy(() => import("./pages/SignupPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -32,7 +33,7 @@ const WithdrawPage = lazy(() => import("./pages/WithdrawPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
 const AboutUsPage = lazy(() => import("./pages/AboutUsPage"));
 
-// Admin pages (No changes here)
+// Admin pages
 const AdminMatchDetailPage = lazy(() => import("./pages/admin/AdminMatchDetailPage"));
 const AdminLoginPage = lazy(() => import("./pages/admin/AdminLoginPage"));
 const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"));
@@ -51,7 +52,6 @@ const PageLoader = () => (
   </div>
 );
 
-// Yeh component user ko login page par bhejega agar woh login nahi hai
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) return <PageLoader />;
@@ -59,7 +59,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Yeh component user ko dashboard par bhejega agar woh pehle se login hai
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
     const { isAuthenticated, isLoading } = useAuth();
     if (isLoading) return <PageLoader />;
@@ -67,7 +66,6 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
     return <>{children}</>;
 }
 
-// AdminRoute (No changes here)
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
   if (isLoading) return <PageLoader />;
@@ -77,25 +75,35 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// --- YEH NAYA COMPONENT ADD HUA HAI ---
+// Yeh component check karega ki agar admin pehle se login hai, toh usko login page na dikhaye
+const AdminPublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  if (isLoading) return <PageLoader />;
+  if (isAuthenticated && user?.role === 'admin') {
+    return <Navigate to={ROUTES.ADMIN_DASHBOARD} replace />;
+  }
+  return <>{children}</>;
+}
+
 const AppContent = () => {
   const { isAuthenticated, logout } = useAuth();
 
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* === AUTH ROUTES (Sirf logged-out users ke liye) === */}
+        {/* === AUTH ROUTES === */}
         <Route path={ROUTES.LOGIN} element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path={ROUTES.SIGNUP} element={<PublicRoute><SignupPage /></PublicRoute>} />
         
-        {/* === PROTECTED ROUTES (Sirf logged-in users ke liye) === */}
+        {/* === PROTECTED ROUTES === */}
         <Route path={ROUTES.DASHBOARD} element={<ProtectedRoute><MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><DashboardPage /></MainLayout></ProtectedRoute>} />
         <Route path={ROUTES.PROFILE} element={<ProtectedRoute><MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><ProfilePage /></MainLayout></ProtectedRoute>} />
         <Route path={ROUTES.REFERRAL} element={<ProtectedRoute><MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><ReferralPage /></MainLayout></ProtectedRoute>} />
         <Route path={ROUTES.WALLET} element={<ProtectedRoute><MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><WalletPage /></MainLayout></ProtectedRoute>} />
         <Route path={ROUTES.WITHDRAW} element={<ProtectedRoute><MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><WithdrawPage /></MainLayout></ProtectedRoute>} />
         
-        {/* === PUBLIC ROUTES (Sabke liye) === */}
-        {/* Homepage sabse aakhri public route hona chahiye taaki baaki match ho sakein */}
+        {/* === PUBLIC ROUTES === */}
         <Route path={ROUTES.TOURNAMENTS} element={<MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><TournamentsPage /></MainLayout>} />
         <Route path={ROUTES.MATCH_DETAIL} element={<MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><TournamentDetailPage /></MainLayout>} />
         <Route path={ROUTES.LEADERBOARD} element={<MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><LeaderboardPage /></MainLayout>} />
@@ -109,7 +117,9 @@ const AppContent = () => {
         <Route path={ROUTES.HOME} element={<MainLayout isAuthenticated={isAuthenticated} onLogout={logout}><HomePage /></MainLayout>} />
 
         {/* === ADMIN ROUTES === */}
-        <Route path={ROUTES.ADMIN_LOGIN} element={<AdminLoginPage />} />
+        {/* --- YEH LINE CHANGE HUI HAI --- */}
+        <Route path={ROUTES.ADMIN_LOGIN} element={<AdminPublicRoute><AdminLoginPage /></AdminPublicRoute>} />
+        
         <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminRoute><AdminLayout onLogout={logout}><AdminDashboardPage /></AdminLayout></AdminRoute>} />
         <Route path={ROUTES.ADMIN_MATCHES} element={<AdminRoute><AdminLayout onLogout={logout}><AdminMatchesPage /></AdminLayout></AdminRoute>} />
         <Route path={ROUTES.ADMIN_MATCH_DETAIL} element={<AdminRoute><AdminLayout onLogout={logout}><AdminMatchDetailPage /></AdminLayout></AdminRoute>} />
@@ -126,7 +136,6 @@ const AppContent = () => {
   );
 };
 
-// App component (No changes here)
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>

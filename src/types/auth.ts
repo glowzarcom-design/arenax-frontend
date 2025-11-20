@@ -30,7 +30,8 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
-  adminLogin?: (credentials: LoginCredentials) => Promise<void>; // <-- YEH LINE ADD HUI HAI
-  signup: (data: SignupData) => Promise<void>;
+  adminLogin?: (credentials: LoginCredentials) => Promise<void>;
+  // --- YEH LINE CHANGE HUI HAI ---
+  signup: (data: SignupData) => Promise<{ success: boolean; message: string; }>;
   logout: () => void;
 }
